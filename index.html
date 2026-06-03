@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Readspace — Read Together</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap');
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --ink:#1a1714;
+  --ink-mid:#4a4540;
+  --ink-soft:#8a8580;
+  --parchment:#faf7f2;
+  --parchment-mid:#f0ece3;
+  --parchment-dark:#e0d9ce;
+  --white:#ffffff;
+  --accent:#7c5c3a;
+  --accent-hover:#6a4d30;
+  --accent-soft:#c4a882;
+  --accent-light:#f5ede0;
+  --green:#3d6b4f;
+  --green-light:#d8eae0;
+  --border:rgba(0,0,0,0.09);
+  --border-med:rgba(0,0,0,0.14);
+  --shadow-sm:0 1px 4px rgba(0,0,0,0.06);
+  --shadow:0 2px 16px rgba(0,0,0,0.09);
+  --shadow-lg:0 8px 40px rgba(0,0,0,0.13);
+  --r:10px;
+  --r-lg:16px;
+  --font-body:'Lora',Georgia,serif;
+  --font-ui:'DM Sans',system-ui,sans-serif;
+}
+
+body{font-family:var(--font-ui);background:var(--parchment);color:var(--ink);min-height:100vh;overflow-x:hidden}
+
+/* ── SCREENS ── */
+.screen{display:none;min-height:100vh}
+.screen.active{display:flex;flex-direction:column}
+
+/* ── LOBBY ── */
+#lobby{align-items:center;justify-content:center;padding:2rem;background:var(--parchment)}
+.lobby-wrap{width:100%;max-width:420px}
+.lobby-wordmark{font-family:var(--font-body);font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:2rem;opacity:.8}
+.lobby-card{background:var(--white);border:1px solid var(--border);border-radius:var(--r-lg);padding:2rem;box-shadow:var(--shadow)}
+.lobby-title{font-family:var(--font-body);font-size:24px;font-weight:400;color:var(--ink);margin-bottom:4px}
+.lobby-sub{font-size:13px;color:var(--ink-soft);margin-bottom:1.75rem;line-height:1.5}
+.field-label{font-size:11px;font-weight:500;color:var(--ink-mid);letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px}
+.field-group{margin-bottom:1.25rem}
+input[type="text"]{width:100%;padding:10px 14px;border:1px solid var(--parchment-dark);border-radius:var(--r);font-family:var(--font-ui);font-size:14px;background:var(--parchment);color:var(--ink);outline:none;transition:border-color .15s,box-shadow .15s}
+input[type="text"]:focus{border-color:var(--accent-soft);box-shadow:0 0 0 3px rgba(196,168,130,.15)}
+.color-grid{display:flex;gap:8px;flex-wrap:wrap}
+.color-dot{width:30px;height:30px;border-radius:50%;cursor:pointer;border:2.5px solid transparent;transition:transform .12s,border-color .12s,box-shadow .12s}
+.color-dot:hover{transform:scale(1.1)}
+.color-dot.selected{border-color:var(--ink);box-shadow:0 0 0 3px rgba(0,0,0,.08)}
+.btn-primary{width:100%;padding:11px;background:var(--accent);color:#fff;border:none;border-radius:var(--r);font-family:var(--font-ui);font-size:14px;font-weight:500;cursor:pointer;transition:background .15s,transform .1s;margin-top:.5rem}
+.btn-primary:hover{background:var(--accent-hover)}
+.btn-primary:active{transform:scale(.98)}
+.btn-primary:disabled{background:var(--parchment-dark);color:var(--ink-soft);cursor:not-allowed}
+
+/* ── ROOM SETUP ── */
+#room-setup{align-items:center;justify-content:center;padding:2rem;background:var(--parchment)}
+.setup-card{background:var(--white);border:1px solid var(--border);border-radius:var(--r-lg);padding:2rem;width:100%;max-width:480px;box-shadow:var(--shadow)}
+.setup-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.75rem}
+.setup-title{font-family:var(--font-body);font-size:20px;font-weight:400}
+.user-chip{display:flex;align-items:center;gap:8px;padding:5px 10px;background:var(--parchment);border:1px solid var(--parchment-dark);border-radius:20px}
+.user-chip-dot{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:500;color:#fff;flex-shrink:0}
+.user-chip-name{font-size:12px;font-weight:500;color:var(--ink-mid)}
+.drop-zone{border:1.5px dashed var(--parchment-dark);border-radius:var(--r);padding:2.5rem 1rem;text-align:center;cursor:pointer;transition:border-color .15s,background .15s;margin-bottom:1.5rem}
+.drop-zone:hover,.drop-zone.drag-over{border-color:var(--accent-soft);background:var(--accent-light)}
+.drop-icon{font-size:36px;margin-bottom:8px}
+.drop-text{font-size:14px;color:var(--ink-mid);font-weight:500}
+.drop-hint{font-size:12px;color:var(--ink-soft);margin-top:4px}
+.divider-row{display:flex;align-items:center;gap:12px;margin-bottom:1.25rem}
+.divider-row hr{flex:1;border:none;border-top:1px solid var(--parchment-dark)}
+.divider-row span{font-size:12px;color:var(--ink-soft)}
+.join-row{display:flex;gap:8px;margin-bottom:.5rem}
+.join-row input{flex:1}
+.btn-secondary{padding:10px 18px;background:var(--parchment);color:var(--ink);border:1px solid var(--parchment-dark);border-radius:var(--r);font-family:var(--font-ui);font-size:14px;font-weight:500;cursor:pointer;white-space:nowrap;transition:background .15s,border-color .15s}
+.btn-secondary:hover{background:var(--parchment-mid);border-color:var(--accent-soft)}
+
+/* ── READER LAYOUT ── */
+#reader{flex-direction:row;background:var(--parchment);min-height:100vh;position:relative}
+
+/* TOPBAR */
+.topbar{position:fixed;top:0;left:0;right:0;z-index:200;background:rgba(250,247,242,.96);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--border);padding:0 20px;height:52px;display:flex;align-items:center;gap:10px}
+.topbar-book{font-family:var(--font-body);font-size:14px;color:var(--ink);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-right:8px}
+.sync-pill{display:flex;align-items:center;gap:5px;padding:4px 10px;background:var(--green-light);border-radius:20px;font-size:11px;font-weight:500;color:var(--green)}
+.sync-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.readers-avatars{display:flex;align-items:center}
+.r-avatar{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:#fff;border:2px solid var(--parchment);margin-left:-6px;cursor:default;position:relative;transition:transform .15s}
+.r-avatar:first-child{margin-left:0}
+.r-avatar:hover{transform:scale(1.15);z-index:10}
+.topbar-btn{padding:6px 12px;background:var(--white);border:1px solid var(--parchment-dark);border-radius:8px;font-family:var(--font-ui);font-size:12px;font-weight:500;cursor:pointer;color:var(--ink);display:flex;align-items:center;gap:5px;transition:background .1s,border-color .1s;white-space:nowrap}
+.topbar-btn:hover{background:var(--parchment-mid);border-color:var(--accent-soft)}
+.topbar-btn.on{background:var(--accent-light);border-color:var(--accent-soft);color:var(--accent)}
+
+/* MAIN AREA */
+.reader-body{display:flex;flex:1;margin-top:52px;min-height:calc(100vh - 52px)}
+
+/* VIEWER */
+.viewer-area{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.viewer-scroll{flex:1;overflow-y:auto;padding:28px 20px 80px;display:flex;flex-direction:column;align-items:center;scroll-behavior:smooth}
+
+/* PAGE */
+.page-wrap{position:relative;box-shadow:var(--shadow-lg);border-radius:3px;overflow:hidden;background:#fff;margin-bottom:4px}
+.page-canvas{display:block}
+.hl-overlay{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:2}
+.hl-rect{position:absolute;border-radius:2px;cursor:pointer;pointer-events:auto;transition:opacity .15s}
+.hl-rect:hover{opacity:.65}
+
+/* TEXT LAYER */
+.text-layer{position:absolute;top:0;left:0;width:100%;height:100%;z-index:3;user-select:text;overflow:hidden}
+.text-layer span{position:absolute;cursor:text;transform-origin:0 0;white-space:pre;color:transparent}
+
+/* NAV BAR */
+.page-nav{position:fixed;bottom:0;left:0;right:0;z-index:150;background:rgba(250,247,242,.96);backdrop-filter:blur(8px);border-top:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;justify-content:center;gap:12px}
+.nav-btn{padding:8px 22px;background:var(--white);border:1px solid var(--parchment-dark);border-radius:8px;font-family:var(--font-ui);font-size:13px;font-weight:500;cursor:pointer;color:var(--ink);transition:background .1s,border-color .1s,opacity .1s}
+.nav-btn:hover:not(:disabled){background:var(--parchment-mid);border-color:var(--accent-soft)}
+.nav-btn:disabled{opacity:.35;cursor:not-allowed}
+.nav-center{display:flex;align-items:center;gap:10px}
+.page-info{font-size:13px;color:var(--ink-mid);min-width:100px;text-align:center}
+.progress-track{width:120px;height:4px;background:var(--parchment-dark);border-radius:2px;overflow:hidden}
+.progress-fill{height:100%;background:var(--accent);border-radius:2px;transition:width .3s}
+.partner-fill{height:100%;background:var(--accent-soft);border-radius:2px;transition:width .3s}
+
+/* ── SIDEBAR ── */
+.sidebar{width:0;overflow:hidden;transition:width .25s cubic-bezier(.4,0,.2,1);background:var(--white);border-left:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;position:relative;top:0;align-self:stretch}
+.sidebar.open{width:300px}
+.sidebar-inner{width:300px;display:flex;flex-direction:column;height:100%;overflow:hidden}
+.sb-tabs{display:flex;border-bottom:1px solid var(--border);background:var(--white)}
+.sb-tab{flex:1;padding:13px 4px;background:none;border:none;border-bottom:2px solid transparent;font-family:var(--font-ui);font-size:11px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;color:var(--ink-soft);transition:color .1s,border-color .1s}
+.sb-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.sb-body{flex:1;overflow-y:auto;padding:14px}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+
+/* HIGHLIGHTS TAB */
+.hl-controls{margin-bottom:12px}
+.hl-hint{font-size:12px;color:var(--ink-soft);line-height:1.55;margin-bottom:10px}
+.hl-palette{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:4px}
+.hl-color-btn{display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:20px;border:1.5px solid transparent;cursor:pointer;font-size:12px;font-family:var(--font-ui);font-weight:500;background:none;transition:border-color .12s,transform .1s}
+.hl-color-btn:hover{transform:scale(1.05)}
+.hl-color-btn.active{border-color:var(--ink)}
+.hl-swatch{width:12px;height:12px;border-radius:3px}
+
+/* ANNOTATION ITEMS */
+.ann-item{background:var(--parchment);border:1px solid var(--parchment-dark);border-radius:8px;padding:10px;margin-bottom:8px;cursor:pointer;transition:border-color .12s,background .12s}
+.ann-item:hover{border-color:var(--accent-soft);background:#fdf9f4}
+.ann-meta{display:flex;align-items:center;gap:6px;margin-bottom:5px}
+.ann-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.ann-author{font-size:11px;font-weight:500;color:var(--ink-mid)}
+.ann-page{font-size:11px;color:var(--ink-soft);margin-left:auto}
+.ann-swatch{width:11px;height:11px;border-radius:2px;border:1px solid rgba(0,0,0,.1)}
+.ann-text{font-family:var(--font-body);font-size:12px;color:var(--ink-mid);line-height:1.45;font-style:italic}
+.ann-note-text{font-family:var(--font-body);font-size:13px;color:var(--ink);line-height:1.55}
+.ann-actions{display:flex;gap:4px;margin-top:6px}
+.ann-btn{font-size:11px;color:var(--ink-soft);background:none;border:none;cursor:pointer;padding:2px 6px;border-radius:4px;font-family:var(--font-ui);transition:color .1s,background .1s}
+.ann-btn:hover{color:var(--accent);background:var(--accent-light)}
+.ann-btn.del:hover{color:#c0392b;background:#fff0f0}
+.empty-ann{text-align:center;padding:2.5rem 1rem;color:var(--ink-soft);font-size:13px;line-height:1.6}
+.empty-icon{font-size:26px;margin-bottom:6px;display:block;opacity:.4}
+
+/* NOTE FORM */
+.note-add-btn{width:100%;padding:9px;background:var(--accent-light);color:var(--accent);border:1px solid var(--accent-soft);border-radius:8px;font-family:var(--font-ui);font-size:13px;font-weight:500;cursor:pointer;margin-bottom:10px;transition:background .1s}
+.note-add-btn:hover{background:#eddfc4}
+.note-form{background:var(--parchment);border:1px solid var(--parchment-dark);border-radius:8px;padding:10px;margin-bottom:10px;display:none}
+.note-form.on{display:block}
+.note-ta{width:100%;min-height:72px;padding:8px;border:1px solid var(--parchment-dark);border-radius:6px;font-family:var(--font-body);font-size:13px;background:var(--white);color:var(--ink);resize:vertical;outline:none;line-height:1.55}
+.note-ta:focus{border-color:var(--accent-soft)}
+.note-form-btns{display:flex;justify-content:flex-end;gap:6px;margin-top:6px}
+.mini-btn{padding:5px 12px;border-radius:6px;font-size:12px;font-family:var(--font-ui);font-weight:500;cursor:pointer;border:1px solid var(--parchment-dark);background:var(--white);color:var(--ink);transition:background .1s}
+.mini-btn:hover{background:var(--parchment-mid)}
+.mini-btn.pri{background:var(--accent);color:#fff;border-color:var(--accent)}
+.mini-btn.pri:hover{background:var(--accent-hover)}
+
+/* READERS TAB */
+.reader-row{display:flex;align-items:center;gap:10px;padding:10px;background:var(--parchment);border-radius:8px;margin-bottom:8px}
+.reader-big-av{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#fff;flex-shrink:0}
+.reader-info{flex:1;min-width:0}
+.reader-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.reader-prog-text{font-size:11px;color:var(--ink-soft);margin-top:1px}
+.reader-prog-bar{margin-top:5px;height:3px;background:var(--parchment-dark);border-radius:2px;overflow:hidden}
+.reader-prog-fill{height:100%;border-radius:2px;transition:width .4s}
+.you-badge{font-size:9px;text-transform:uppercase;letter-spacing:.06em;background:var(--accent-light);color:var(--accent);padding:2px 7px;border-radius:10px;font-weight:500;flex-shrink:0}
+.room-code-box{text-align:center;padding:14px;background:var(--accent-light);border:1px solid var(--accent-soft);border-radius:10px;margin-top:10px}
+.room-code-label{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);font-weight:500;margin-bottom:6px}
+.room-code-val{font-family:var(--font-body);font-size:28px;letter-spacing:5px;color:var(--accent);font-weight:400}
+.copy-code-btn{margin-top:8px;padding:5px 14px;background:var(--accent);color:#fff;border:none;border-radius:6px;font-size:12px;font-family:var(--font-ui);font-weight:500;cursor:pointer;transition:background .1s}
+.copy-code-btn:hover{background:var(--accent-hover)}
+
+/* SELECTION POPUP */
+.sel-popup{position:fixed;background:var(--white);border:1px solid var(--parchment-dark);border-radius:10px;padding:6px;box-shadow:var(--shadow-lg);z-index:600;display:none;gap:4px;flex-wrap:wrap;max-width:240px}
+.sel-popup.on{display:flex}
+.sel-btn{padding:5px 11px;border-radius:20px;border:none;font-size:12px;font-family:var(--font-ui);font-weight:500;cursor:pointer;display:flex;align-items:center;gap:4px;transition:opacity .1s,transform .1s}
+.sel-btn:hover{opacity:.8;transform:scale(1.04)}
+
+/* LOADING */
+.loading-screen{position:fixed;inset:0;background:rgba(250,247,242,.94);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:900;gap:14px}
+.spinner{width:38px;height:38px;border:2.5px solid var(--parchment-dark);border-top-color:var(--accent);border-radius:50%;animation:spin .75s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-msg{font-size:14px;color:var(--ink-mid);font-family:var(--font-ui)}
+
+/* TOAST */
+.toast{position:fixed;bottom:76px;left:50%;transform:translateX(-50%);background:rgba(26,23,20,.9);color:#fff;padding:8px 20px;border-radius:20px;font-size:13px;z-index:800;opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap}
+.toast.on{opacity:1}
+
+/* JOIN PROMPT */
+.join-prompt{position:fixed;inset:0;background:rgba(250,247,242,.92);display:none;flex-direction:column;align-items:center;justify-content:center;z-index:400;padding:2rem}
+.join-prompt.on{display:flex}
+.join-prompt-card{background:var(--white);border:1px solid var(--border);border-radius:var(--r-lg);padding:2rem;max-width:400px;width:100%;text-align:center;box-shadow:var(--shadow-lg)}
+.jp-title{font-family:var(--font-body);font-size:20px;margin-bottom:8px}
+.jp-sub{font-size:13px;color:var(--ink-soft);line-height:1.55;margin-bottom:1.5rem}
+
+hr.soft{border:none;border-top:1px solid var(--parchment-dark);margin:10px 0}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div class="loading-screen" id="loading" style="display:none">
+  <div class="spinner"></div>
+  <div class="loading-msg" id="load-msg">Loading…</div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- SELECTION POPUP -->
+<div class="sel-popup" id="sel-popup">
+  <button class="sel-btn" style="background:rgba(255,220,80,.5);color:#7a5800" onclick="applyHighlight('yellow')">🟡 Yellow</button>
+  <button class="sel-btn" style="background:rgba(255,130,160,.4);color:#8b1a3a" onclick="applyHighlight('pink')">🩷 Pink</button>
+  <button class="sel-btn" style="background:rgba(80,200,140,.4);color:#1a6b3c" onclick="applyHighlight('green')">🟢 Green</button>
+  <button class="sel-btn" style="background:rgba(80,160,240,.45);color:#0c2f7a" onclick="applyHighlight('blue')">🔵 Blue</button>
+  <button class="sel-btn" style="background:var(--parchment-mid);color:var(--ink)" onclick="selAddNote()">📝 Note</button>
+  <button class="sel-btn" style="background:var(--parchment-mid);color:var(--ink-soft);padding:5px 8px" onclick="hidePopup()">✕</button>
+</div>
+
+<!-- JOIN PROMPT (when joining without PDF loaded) -->
+<div class="join-prompt" id="join-prompt">
+  <div class="join-prompt-card">
+    <div style="font-size:40px;margin-bottom:12px">📚</div>
+    <h2 class="jp-title" id="jp-title">Loading…</h2>
+    <p class="jp-sub" id="jp-sub">Upload the same PDF your friend used to start reading.</p>
+    <button class="btn-primary" style="width:auto;padding:10px 28px;margin:0 auto;display:block" onclick="document.getElementById('pdf-join-input').click()">Upload PDF</button>
+    <input type="file" id="pdf-join-input" accept=".pdf" style="display:none" onchange="loadJoinPDF(event)">
+  </div>
+</div>
+
+<!-- ── SCREEN 1: LOBBY ── -->
+<div class="screen active" id="lobby">
+  <div class="lobby-wrap" style="margin:auto">
+    <div class="lobby-wordmark">Readspace</div>
+    <div class="lobby-card">
+      <h1 class="lobby-title">Welcome</h1>
+      <p class="lobby-sub">Read books together with a friend — share highlights, notes, and progress in real time.</p>
+      <div class="field-group">
+        <div class="field-label">Your name</div>
+        <input type="text" id="user-name" placeholder="Enter your name…" maxlength="24" autofocus />
+      </div>
+      <div class="field-group">
+        <div class="field-label">Pick a colour</div>
+        <div class="color-grid" id="color-grid"></div>
+      </div>
+      <button class="btn-primary" onclick="lobbyNext()">Continue →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── SCREEN 2: ROOM SETUP ── -->
+<div class="screen" id="room-setup">
+  <div class="setup-card" style="margin:auto">
+    <div class="setup-header">
+      <div>
+        <h2 class="setup-title">Reading Room</h2>
+        <p style="font-size:12px;color:var(--ink-soft);margin-top:2px">Create a room or join one</p>
+      </div>
+      <div class="user-chip">
+        <div class="user-chip-dot" id="setup-dot"></div>
+        <span class="user-chip-name" id="setup-name-chip"></span>
+      </div>
+    </div>
+
+    <!-- CREATE -->
+    <div class="field-label" style="margin-bottom:8px">Create a new room</div>
+    <div class="drop-zone" id="drop-zone" onclick="document.getElementById('pdf-input').click()">
+      <div class="drop-icon">📄</div>
+      <div class="drop-text">Drop PDF here, or click to browse</div>
+      <div class="drop-hint">PDF only · your friend joins with the room code</div>
+    </div>
+    <input type="file" id="pdf-input" accept=".pdf" style="display:none" onchange="handleFile(event)">
+
+    <div class="divider-row"><hr><span>or join</span><hr></div>
+
+    <!-- JOIN -->
+    <div class="field-label" style="margin-bottom:6px">Join a friend's room</div>
+    <div class="join-row">
+      <input type="text" id="join-input" placeholder="6-letter room code…" maxlength="6"
+        style="text-transform:uppercase;letter-spacing:3px;font-weight:500"
+        oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')">
+      <button class="btn-secondary" onclick="joinRoom()">Join →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── SCREEN 3: READER ── -->
+<div class="screen" id="reader">
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="topbar-book" id="tb-title">—</div>
+    <div class="sync-pill"><div class="sync-dot"></div><span>Live</span></div>
+    <div class="readers-avatars" id="tb-avatars"></div>
+    <button class="topbar-btn" id="notes-btn" onclick="toggleSidebar()">📋 Notes</button>
+    <button class="topbar-btn" onclick="shareRoom()">🔗 Share</button>
+  </div>
+
+  <div class="reader-body">
+
+    <!-- VIEWER -->
+    <div class="viewer-area">
+      <div class="viewer-scroll" id="viewer-scroll">
+        <div id="page-mount"></div>
+      </div>
+      <!-- PAGE NAV -->
+      <div class="page-nav">
+        <button class="nav-btn" id="prev-btn" onclick="goPrev()">← Prev</button>
+        <div class="nav-center">
+          <div class="progress-track"><div class="progress-fill" id="my-bar"></div></div>
+          <div class="page-info" id="page-info">— / —</div>
+          <div class="progress-track"><div class="partner-fill" id="partner-bar"></div></div>
+        </div>
+        <button class="nav-btn" id="next-btn" onclick="goNext()">Next →</button>
+      </div>
+    </div>
+
+    <!-- SIDEBAR -->
+    <div class="sidebar" id="sidebar">
+      <div class="sidebar-inner">
+        <div class="sb-tabs">
+          <button class="sb-tab active" onclick="switchTab('hl')">Highlights</button>
+          <button class="sb-tab" onclick="switchTab('notes')">Notes</button>
+          <button class="sb-tab" onclick="switchTab('readers')">Readers</button>
+        </div>
+        <div class="sb-body">
+
+          <!-- HIGHLIGHTS PANEL -->
+          <div class="tab-panel active" id="panel-hl">
+            <p class="hl-hint">Select any text on the page, then choose a colour to highlight it.</p>
+            <div id="hl-list"></div>
+          </div>
+
+          <!-- NOTES PANEL -->
+          <div class="tab-panel" id="panel-notes">
+            <button class="note-add-btn" onclick="openNoteForm()">+ Add note on this page</button>
+            <div class="note-form" id="note-form">
+              <textarea class="note-ta" id="note-ta" placeholder="Write your note here…"></textarea>
+              <div class="note-form-btns">
+                <button class="mini-btn" onclick="closeNoteForm()">Cancel</button>
+                <button class="mini-btn pri" onclick="saveNote()">Save</button>
+              </div>
+            </div>
+            <div id="notes-list"></div>
+          </div>
+
+          <!-- READERS PANEL -->
+          <div class="tab-panel" id="panel-readers">
+            <div id="readers-panel-list"></div>
+            <div class="room-code-box">
+              <div class="room-code-label">Room code</div>
+              <div class="room-code-val" id="sidebar-code"></div>
+              <button class="copy-code-btn" onclick="shareRoom()">Copy code</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div><!-- reader-body -->
+</div><!-- reader screen -->
+
+<script>
+// ─────────────────────────────────────────────
+//  CONFIG
+// ─────────────────────────────────────────────
+const COLORS = ['#7c5c3a','#c0392b','#2471a3','#1e8449','#7d3c98','#d35400','#117a65','#943126'];
+const HL_CSS = {
+  yellow:'rgba(255,215,60,.46)',
+  pink:  'rgba(255,110,160,.38)',
+  green: 'rgba(40,190,120,.38)',
+  blue:  'rgba(50,150,240,.42)'
+};
+const SYNC_MS = 4000;
+const STORAGE_KEY = r => 'rs:room:' + r;
+
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+// ─────────────────────────────────────────────
+//  STATE
+// ─────────────────────────────────────────────
+const S = {
+  user:    { name:'', color:'#7c5c3a', initials:'' },
+  room:    '',
+  pdf:     null,
+  page:    1,
+  total:   0,
+  title:   '',
+  scale:   1.5,
+  highlights: [],
+  notes:      [],
+  readers:    {},
+  sidebarOpen: false,
+  activeTab: 'hl',
+  pendingText: '',
+  pendingPage: 0,
+  pendingRect: null,
+  syncTimer: null,
+  rendering: false,
+  textItems: []   // text layer for current page
+};
+
+// ─────────────────────────────────────────────
+//  LOBBY
+// ─────────────────────────────────────────────
+(function initColorGrid() {
+  const g = document.getElementById('color-grid');
+  COLORS.forEach((c,i) => {
+    const d = document.createElement('div');
+    d.className = 'color-dot' + (i===0?' selected':'');
+    d.style.background = c;
+    d.onclick = () => {
+      g.querySelectorAll('.color-dot').forEach(x=>x.classList.remove('selected'));
+      d.classList.add('selected');
+      S.user.color = c;
+    };
+    g.appendChild(d);
+  });
+})();
+
+function lobbyNext() {
+  const n = document.getElementById('user-name').value.trim();
+  if (!n) { toast('Please enter your name'); return; }
+  S.user.name = n;
+  S.user.initials = n.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+  document.getElementById('setup-dot').style.background = S.user.color;
+  document.getElementById('setup-dot').textContent = S.user.initials;
+  document.getElementById('setup-dot').style.fontSize = '9px';
+  document.getElementById('setup-name-chip').textContent = n;
+  showScreen('room-setup');
+}
+
+document.getElementById('user-name').onkeydown = e => { if(e.key==='Enter') lobbyNext(); };
+document.getElementById('join-input').onkeydown = e => { if(e.key==='Enter') joinRoom(); };
+
+// ─────────────────────────────────────────────
+//  DRAG + DROP
+// ─────────────────────────────────────────────
+const dz = document.getElementById('drop-zone');
+dz.ondragover = e => { e.preventDefault(); dz.classList.add('drag-over'); };
+dz.ondragleave = () => dz.classList.remove('drag-over');
+dz.ondrop = e => {
+  e.preventDefault(); dz.classList.remove('drag-over');
+  const f = e.dataTransfer.files[0];
+  if (f) startCreateRoom(f);
+};
+
+function handleFile(e) {
+  const f = e.target.files[0];
+  if (f) startCreateRoom(f);
+}
+
+// ─────────────────────────────────────────────
+//  CREATE ROOM
+// ─────────────────────────────────────────────
+async function startCreateRoom(file) {
+  if (!file.name.toLowerCase().endsWith('.pdf')) {
+    toast('Please upload a PDF file (EPUB support coming soon)'); return;
+  }
+  showLoading('Loading PDF…');
+  S.room  = genCode();
+  S.title = file.name.replace(/\.pdf$/i,'');
+  try {
+    const buf = await file.arrayBuffer();
+    S.pdf   = await pdfjsLib.getDocument({ data: buf }).promise;
+    S.total = S.pdf.numPages;
+    S.page  = 1;
+  } catch(err) {
+    hideLoading(); toast('Could not read this PDF — try another file.'); return;
+  }
+  await persistRoom();
+  enterReader();
+}
+
+// ─────────────────────────────────────────────
+//  JOIN ROOM
+// ─────────────────────────────────────────────
+async function joinRoom() {
+  const code = document.getElementById('join-input').value.trim().toUpperCase();
+  if (code.length < 4) { toast('Enter the room code your friend shared'); return; }
+  showLoading('Joining room…');
+  S.room = code;
+  const ok = await pullRoom();
+  if (!ok) {
+    hideLoading();
+    toast('Room not found — double-check the code');
+    return;
+  }
+  // Enter reader but PDF not loaded yet
+  enterReader(false);
+}
+
+// ─────────────────────────────────────────────
+//  PERSISTENT STORAGE (localStorage)
+// ─────────────────────────────────────────────
+function persistRoom() {
+  const d = {
+    title: S.title, total: S.total,
+    highlights: S.highlights, notes: S.notes, readers: S.readers
+  };
+  try { localStorage.setItem(STORAGE_KEY(S.room), JSON.stringify(d)); } catch(e){}
+}
+
+function pullRoom() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY(S.room));
+    if (!raw) return false;
+    const d = JSON.parse(raw);
+    S.title = d.title || 'Document';
+    S.total = d.total || 0;
+    S.highlights = d.highlights || [];
+    S.notes = d.notes || [];
+    S.readers = d.readers || {};
+    return true;
+  } catch(e) { return false; }
+}
+
+function syncPull() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY(S.room));
+    if (!raw) return;
+    const d = JSON.parse(raw);
+    const myR = S.readers[S.user.name];
+    S.highlights = d.highlights || [];
+    S.notes = d.notes || [];
+    S.readers = d.readers || {};
+    if (myR) S.readers[S.user.name] = myR; // keep our own progress authoritative
+    renderAnnotations();
+    renderSidebar();
+    renderAvatars();
+    renderPartnerBar();
+  } catch(e){}
+}
+
+function pushProgress() {
+  S.readers[S.user.name] = {
+    name: S.user.name, color: S.user.color, initials: S.user.initials,
+    page: S.page, total: S.total, ts: Date.now()
+  };
+  persistRoom();
+}
+
+// ─────────────────────────────────────────────
+//  ENTER READER
+// ─────────────────────────────────────────────
+function enterReader(hasPDF = true) {
+  document.getElementById('tb-title').textContent = S.title;
+  document.getElementById('sidebar-code').textContent = S.room;
+  showScreen('reader');
+  hideLoading();
+
+  if (hasPDF) {
+    renderPage(1);
+  } else {
+    // Show upload prompt
+    document.getElementById('page-mount').innerHTML = '';
+    document.getElementById('page-info').textContent = S.total + ' pages total';
+    const jp = document.getElementById('join-prompt');
+    document.getElementById('jp-title').textContent = S.title;
+    document.getElementById('jp-sub').textContent =
+      'You\'ve joined "' + S.title + '". Upload the same PDF to start reading — your highlights and notes are already waiting.';
+    jp.classList.add('on');
+  }
+
+  pushProgress();
+  startSync();
+}
+
+async function loadJoinPDF(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  showLoading('Loading PDF…');
+  try {
+    const buf = await file.arrayBuffer();
+    S.pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+    S.total = S.pdf.numPages;
+    document.getElementById('join-prompt').classList.remove('on');
+    hideLoading();
+    renderPage(S.page || 1);
+    pushProgress();
+  } catch(err) {
+    hideLoading(); toast('Could not read this PDF.');
+  }
+}
+
+// ─────────────────────────────────────────────
+//  PAGE RENDER
+// ─────────────────────────────────────────────
+async function renderPage(num) {
+  if (!S.pdf || S.rendering) return;
+  S.rendering = true;
+  S.page = Math.max(1, Math.min(num, S.total));
+  updateNavUI();
+
+  const mount = document.getElementById('page-mount');
+  mount.innerHTML = '';
+
+  try {
+    const page = await S.pdf.getPage(S.page);
+    const vp   = page.getViewport({ scale: S.scale });
+
+    const wrap = document.createElement('div');
+    wrap.className = 'page-wrap';
+    wrap.style.width  = vp.width  + 'px';
+    wrap.style.height = vp.height + 'px';
+
+    // Canvas
+    const canvas = document.createElement('canvas');
+    canvas.className = 'page-canvas';
+    canvas.width  = vp.width;
+    canvas.height = vp.height;
+
+    // Highlight overlay
+    const hlDiv = document.createElement('div');
+    hlDiv.className = 'hl-overlay';
+    hlDiv.id = 'hl-overlay';
+
+    // Text layer (for selection)
+    const textDiv = document.createElement('div');
+    textDiv.className = 'text-layer';
+    textDiv.id = 'text-layer';
+
+    wrap.appendChild(canvas);
+    wrap.appendChild(hlDiv);
+    wrap.appendChild(textDiv);
+    mount.appendChild(wrap);
+
+    // Render canvas
+    await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+
+    // Render text layer for selection
+    const tc = await page.getTextContent();
+    S.textItems = tc.items;
+    renderTextLayer(tc, vp, textDiv);
+
+    renderAnnotations();
+  } catch(e) { console.warn('Page render error:', e); }
+
+  S.rendering = false;
+  pushProgress();
+  renderSidebar();
+  renderAvatars();
+  document.getElementById('viewer-scroll').scrollTop = 0;
+}
+
+function renderTextLayer(tc, vp, container) {
+  container.style.width  = vp.width  + 'px';
+  container.style.height = vp.height + 'px';
+
+  tc.items.forEach(item => {
+    if (!item.str) return;
+    const tx = pdfjsLib.Util.transform(vp.transform, item.transform);
+    const span = document.createElement('span');
+    span.textContent = item.str;
+    const angle = Math.atan2(tx[1], tx[0]);
+    const h = Math.abs(item.height * vp.scale) || 12;
+    span.style.cssText = `
+      left:${tx[4]}px;top:${tx[5] - h}px;
+      font-size:${h * 0.95}px;
+      transform:scaleX(${(item.width * vp.scale) / (span.textContent.length * h * 0.6) || 1});
+      ${angle ? 'transform:rotate(' + angle + 'rad);' : ''}
+    `;
+    container.appendChild(span);
+  });
+}
+
+function updateNavUI() {
+  document.getElementById('prev-btn').disabled = S.page <= 1;
+  document.getElementById('next-btn').disabled = S.page >= S.total;
+  document.getElementById('page-info').textContent = S.page + ' / ' + S.total;
+  const pct = S.total > 1 ? Math.round((S.page - 1) / (S.total - 1) * 100) : 100;
+  document.getElementById('my-bar').style.width = pct + '%';
+}
+
+function renderPartnerBar() {
+  const others = Object.values(S.readers).filter(r => r.name !== S.user.name);
+  if (!others.length) return;
+  const partner = others.sort((a,b)=>(b.ts||0)-(a.ts||0))[0];
+  if (!partner.total) return;
+  const pct = Math.round((partner.page - 1) / (partner.total - 1) * 100);
+  document.getElementById('partner-bar').style.width = pct + '%';
+}
+
+function goPrev() { if (S.page > 1) renderPage(S.page - 1); }
+function goNext() { if (S.page < S.total) renderPage(S.page + 1); }
+
+document.addEventListener('keydown', e => {
+  if (!document.getElementById('reader').classList.contains('active')) return;
+  if (document.activeElement && ['TEXTAREA','INPUT'].includes(document.activeElement.tagName)) return;
+  if (e.key === 'ArrowRight' || e.key === 'PageDown') goNext();
+  if (e.key === 'ArrowLeft'  || e.key === 'PageUp')   goPrev();
+});
+
+// ─────────────────────────────────────────────
+//  ANNOTATIONS OVERLAY
+// ─────────────────────────────────────────────
+function renderAnnotations() {
+  const overlay = document.getElementById('hl-overlay');
+  if (!overlay) return;
+  overlay.innerHTML = '';
+  S.highlights
+    .filter(h => h.page === S.page)
+    .forEach(h => {
+      const div = document.createElement('div');
+      div.className = 'hl-rect';
+      div.style.cssText = `
+        left:${h.x}%;top:${h.y}%;
+        width:${h.w}%;height:${h.h}%;
+        background:${HL_CSS[h.color]||HL_CSS.yellow};
+      `;
+      div.title = h.author + ': ' + h.text.slice(0, 80);
+      div.onclick = () => { switchTab('hl'); if(!S.sidebarOpen) toggleSidebar(); };
+      overlay.appendChild(div);
+    });
+}
+
+// ─────────────────────────────────────────────
+//  TEXT SELECTION → POPUP
+// ─────────────────────────────────────────────
+let selTimer;
+document.addEventListener('mouseup', () => {
+  clearTimeout(selTimer);
+  selTimer = setTimeout(() => {
+    const sel = window.getSelection();
+    if (!sel || sel.isCollapsed) return;
+    const text = sel.toString().trim();
+    if (text.length < 2) return;
+    if (!document.getElementById('reader').classList.contains('active')) return;
+
+    // Check selection is inside viewer
+    const tl = document.getElementById('text-layer');
+    if (!tl) return;
+    try {
+      if (!tl.contains(sel.anchorNode) && !tl.contains(sel.focusNode)) return;
+    } catch(e) { return; }
+
+    S.pendingText = text;
+    S.pendingPage = S.page;
+
+    const range = sel.getRangeAt(0);
+    const rRect = range.getBoundingClientRect();
+    const wrap  = document.querySelector('.page-wrap');
+    if (wrap) {
+      const cr = wrap.getBoundingClientRect();
+      // Store as percentage of page dimensions for resolution independence
+      S.pendingRect = {
+        x: ((rRect.left - cr.left) / cr.width  * 100),
+        y: ((rRect.top  - cr.top)  / cr.height * 100),
+        w: (rRect.width  / cr.width  * 100),
+        h: (rRect.height / cr.height * 100) + .5
+      };
+    }
+
+    const pop = document.getElementById('sel-popup');
+    const px  = Math.min(rRect.left, window.innerWidth - 250);
+    const py  = rRect.bottom + 10;
+    pop.style.left = px + 'px';
+    pop.style.top  = py + 'px';
+    pop.classList.add('on');
+  }, 120);
+});
+
+document.addEventListener('mousedown', e => {
+  if (!e.target.closest('#sel-popup')) hidePopup();
+});
+
+function hidePopup() {
+  document.getElementById('sel-popup').classList.remove('on');
+}
+
+async function applyHighlight(color) {
+  if (!S.pendingText) return;
+  const hl = {
+    id: uid(), page: S.pendingPage,
+    text: S.pendingText, color,
+    author: S.user.name, authorColor: S.user.color,
+    x: S.pendingRect?.x ?? 0, y: S.pendingRect?.y ?? 0,
+    w: S.pendingRect?.w ?? 20, h: S.pendingRect?.h ?? 3,
+    ts: Date.now()
+  };
+  S.highlights.push(hl);
+  persistRoom();
+  renderAnnotations();
+  renderSidebar();
+  hidePopup();
+  window.getSelection()?.removeAllRanges();
+  toast('Highlight saved');
+}
+
+async function deleteHighlight(id) {
+  S.highlights = S.highlights.filter(h => h.id !== id);
+  persistRoom();
+  renderAnnotations();
+  renderSidebar();
+  toast('Highlight removed');
+}
+
+function selAddNote() {
+  hidePopup();
+  window.getSelection()?.removeAllRanges();
+  switchTab('notes');
+  if (!S.sidebarOpen) toggleSidebar();
+  setTimeout(() => {
+    openNoteForm();
+    const ta = document.getElementById('note-ta');
+    if (S.pendingText) {
+      ta.value = '"' + S.pendingText.slice(0, 140) + '"\n\n';
+    }
+    ta.focus();
+    ta.selectionStart = ta.selectionEnd = ta.value.length;
+  }, 280);
+}
+
+// ─────────────────────────────────────────────
+//  NOTES
+// ─────────────────────────────────────────────
+function openNoteForm()  { document.getElementById('note-form').classList.add('on'); document.getElementById('note-ta').focus(); }
+function closeNoteForm() { document.getElementById('note-form').classList.remove('on'); document.getElementById('note-ta').value=''; }
+
+async function saveNote() {
+  const text = document.getElementById('note-ta').value.trim();
+  if (!text) { toast('Write something first'); return; }
+  S.notes.push({ id: uid(), page: S.page, text, author: S.user.name, authorColor: S.user.color, ts: Date.now() });
+  persistRoom();
+  closeNoteForm();
+  renderSidebar();
+  toast('Note saved');
+}
+
+async function deleteNote(id) {
+  S.notes = S.notes.filter(n => n.id !== id);
+  persistRoom();
+  renderSidebar();
+  toast('Note removed');
+}
+
+// ─────────────────────────────────────────────
+//  SIDEBAR
+// ─────────────────────────────────────────────
+function toggleSidebar() {
+  S.sidebarOpen = !S.sidebarOpen;
+  document.getElementById('sidebar').classList.toggle('open', S.sidebarOpen);
+  document.getElementById('notes-btn').classList.toggle('on', S.sidebarOpen);
+  if (S.sidebarOpen) renderSidebar();
+}
+
+function switchTab(tab) {
+  S.activeTab = tab;
+  const tabs = ['hl','notes','readers'];
+  document.querySelectorAll('.sb-tab').forEach((t,i) => t.classList.toggle('active', tabs[i]===tab));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-' + tab).classList.add('active');
+  renderSidebar();
+}
+
+function renderSidebar() {
+  renderHLList();
+  renderNotesList();
+  renderReadersPanel();
+}
+
+function renderHLList() {
+  const el = document.getElementById('hl-list');
+  if (!el) return;
+  if (!S.highlights.length) {
+    el.innerHTML = '<div class="empty-ann"><span class="empty-icon">✏️</span>No highlights yet.<br>Select any text on the page to begin.</div>';
+    return;
+  }
+  el.innerHTML = [...S.highlights]
+    .sort((a,b) => a.page - b.page || a.ts - b.ts)
+    .map(h => `
+      <div class="ann-item" onclick="jumpTo(${h.page})">
+        <div class="ann-meta">
+          <div class="ann-dot" style="background:${h.authorColor}"></div>
+          <span class="ann-author">${esc(h.author)}</span>
+          <span class="ann-page">p.${h.page}</span>
+          <div class="ann-swatch" style="background:${HL_CSS[h.color]||HL_CSS.yellow}"></div>
+        </div>
+        <div class="ann-text">${esc(h.text.slice(0,110))}${h.text.length>110?'…':''}</div>
+        <div class="ann-actions">
+          <button class="ann-btn del" onclick="event.stopPropagation();deleteHighlight('${h.id}')">Remove</button>
+        </div>
+      </div>`).join('');
+}
+
+function renderNotesList() {
+  const el = document.getElementById('notes-list');
+  if (!el) return;
+  if (!S.notes.length) {
+    el.innerHTML = '<div class="empty-ann"><span class="empty-icon">📝</span>No notes yet.<br>Click "Add note" above to write one.</div>';
+    return;
+  }
+  el.innerHTML = [...S.notes]
+    .sort((a,b) => a.page - b.page || a.ts - b.ts)
+    .map(n => `
+      <div class="ann-item" onclick="jumpTo(${n.page})">
+        <div class="ann-meta">
+          <div class="ann-dot" style="background:${n.authorColor}"></div>
+          <span class="ann-author">${esc(n.author)}</span>
+          <span class="ann-page">p.${n.page}</span>
+        </div>
+        <div class="ann-note-text">${esc(n.text)}</div>
+        <div class="ann-actions">
+          <button class="ann-btn del" onclick="event.stopPropagation();deleteNote('${n.id}')">Delete</button>
+        </div>
+      </div>`).join('');
+}
+
+function renderReadersPanel() {
+  const el = document.getElementById('readers-panel-list');
+  if (!el) return;
+  const list = Object.values(S.readers).sort((a,b) => (b.ts||0)-(a.ts||0));
+  if (!list.length) { el.innerHTML = ''; return; }
+  el.innerHTML = list.map(r => {
+    const pct = r.total > 1 ? Math.round((r.page-1)/(r.total-1)*100) : 100;
+    const isYou = r.name === S.user.name;
+    return `<div class="reader-row">
+      <div class="reader-big-av" style="background:${r.color}">${esc(r.initials||r.name[0].toUpperCase())}</div>
+      <div class="reader-info">
+        <div class="reader-name">${esc(r.name)}</div>
+        <div class="reader-prog-text">Page ${r.page} of ${r.total} — ${pct}%</div>
+        <div class="reader-prog-bar"><div class="reader-prog-fill" style="width:${pct}%;background:${r.color}"></div></div>
+      </div>
+      ${isYou ? '<span class="you-badge">You</span>' : ''}
+    </div>`;
+  }).join('');
+}
+
+function renderAvatars() {
+  const bar = document.getElementById('tb-avatars');
+  if (!bar) return;
+  const list = Object.values(S.readers).slice(0,5);
+  bar.innerHTML = list.map(r =>
+    `<div class="r-avatar" style="background:${r.color}" title="${esc(r.name)} — p.${r.page}">${esc(r.initials||r.name[0].toUpperCase())}</div>`
+  ).join('');
+}
+
+function jumpTo(page) { if (page !== S.page) renderPage(page); }
+
+// ─────────────────────────────────────────────
+//  SYNC LOOP
+// ─────────────────────────────────────────────
+function startSync() {
+  if (S.syncTimer) clearInterval(S.syncTimer);
+  S.syncTimer = setInterval(() => {
+    syncPull();
+    renderPartnerBar();
+  }, SYNC_MS);
+}
+
+// ─────────────────────────────────────────────
+//  SHARE
+// ─────────────────────────────────────────────
+function shareRoom() {
+  const msg = 'Room code: ' + S.room + '\n\nOpen Readspace and enter this code to join me!';
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(S.room).then(() => toast('Room code copied: ' + S.room));
+  } else {
+    prompt('Copy your room code:', S.room);
+  }
+}
+
+// ─────────────────────────────────────────────
+//  UTILS
+// ─────────────────────────────────────────────
+function genCode() {
+  const ch = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  return Array.from({length:6}, ()=>ch[Math.floor(Math.random()*ch.length)]).join('');
+}
+
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function showLoading(msg) {
+  document.getElementById('load-msg').textContent = msg;
+  document.getElementById('loading').style.display = 'flex';
+}
+
+function hideLoading() { document.getElementById('loading').style.display = 'none'; }
+
+let toastT;
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('on');
+  clearTimeout(toastT);
+  toastT = setTimeout(() => t.classList.remove('on'), 2400);
+}
+</script>
+</body>
+</html>
